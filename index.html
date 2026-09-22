@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Grammar Phi</title>
+<meta name="description" content="Grammar Phi experimental semantic-weight search engine">
+<style>
+:root{font-family:system-ui,-apple-system,Roboto,sans-serif;color:#17131f;background:#f7f4fb}
+*{box-sizing:border-box}body{margin:0}.app{max-width:480px;margin:auto;min-height:100vh;padding:18px 16px 50px}
+h1{font-size:27px;margin:18px 0 4px}.sub{margin:0 0 22px;color:#6b6274;font-size:14px}
+.search{display:flex;gap:8px;position:sticky;top:0;padding:10px 0;background:#f7f4fb;z-index:3}
+input{min-width:0;flex:1;border:2px solid #5f259f;border-radius:15px;padding:14px;font-size:16px;background:#fff}
+button{border:0;border-radius:15px;padding:0 18px;font-weight:800;background:#5f259f;color:#fff}
+.card{background:#fff;border-radius:20px;padding:18px;margin-top:15px;box-shadow:0 5px 22px #29163b14}
+#overview{font-size:16px;line-height:1.65}.meter{display:none;margin-top:12px;font-size:12px;color:#675c70}
+.pill{display:inline-block;margin:3px;padding:5px 8px;border-radius:999px;color:#fff;font-weight:700}
+.red{background:#c62828}.blue{background:#2467c7}.yellow{background:#d6a600;color:#241d00}.green{background:#27864b}.purple{background:#7b35a8}
+small{color:#766c7d}.err{color:#a21d27}
+</style></head>
+<body><main class="app">
+<h1>Grammar φ</h1><p class="sub">Semantic field + probabilistic grammar experiment</p>
+<div class="search"><input id="q" autocomplete="off" placeholder="Search anything…"><button id="go">Search</button></div>
+<div id="status"></div><section class="card" id="result" hidden><div id="field"></div><article id="overview"></article><div class="meter" id="meter"></div></section>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const STOP=new Set("is was are were be been being the a an of and in by with to for from on at as or but if than then that this these those it its he she they them his her their who which when where how".split(" "));
+function classify(query){
+ const words=(query.match(/[A-Za-z0-9'.-]+/g)||[]);
+ return words.map((w,i)=>{
+   const x=w.toLowerCase();
+   let color='yellow',region='78–90',role='semantic particle';
+   if(i===0){color='red';region='90–100';role='seed field'}
+   else if(STOP.has(x)){color='green';region='10–20';role='grammar/bond candidate'}
+   else if(/ly$/.test(x)){color='purple';region='30–40';role='modifier candidate'}
+   else if(/(ing|ed)$/.test(x)){color='green';region='20–30';role='event/action candidate'}
+   else if(/(ous|ive|al|ic|ful|less|ary|ory)$/.test(x)){color='purple';region='40–50';role='attribute candidate'}
+   else if(i===1){color='blue';region='80–95';role='inner semantic field'}
+   return {w,color,region,role};
+ });
+}
+function showField(q){
+ const p=classify(q);
+ $('#field').innerHTML=p.map(x=>'<span class="pill '+x.color+'" title="'+x.role+' · '+x.region+'">'+x.w+'</span>').join('');
+ $('#meter').style.display='block';
+ $('#meter').textContent='Experimental regions: '+p.map(x=>x.w+' '+x.region).join(' · ');
+}
+async function search(){
+ const q=$('#q').value.trim(); if(!q)return;
+ $('#result').hidden=false; $('#overview').innerHTML=''; showField(q);
+ $('#status').innerHTML='<small>Building semantic field and overview…</small>';
+ const endpoints=[
+  'https://orange-brook-a2ac.marvaseater.workers.dev/ai-overview',
+  'https://orange-brook-a2ac.marvaseater.workers.dev/overview'
+ ];
+ let last='';
+ for(const url of endpoints){
+  try{
+   const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query:q,prompt:'Write an accurate, useful approximately 500-word AI overview for: '+q})});
+   if(!r.ok){last='HTTP '+r.status;continue}
+   const d=await r.json();
+   const text=d.overview||d.answer||d.text||d.content||d.result;
+   if(text){$('#overview').textContent=typeof text==='string'?text:JSON.stringify(text);$('#status').innerHTML='';return}
+  }catch(e){last=e.message}
+ }
+ $('#status').innerHTML='<p class="err">The overview backend is not responding yet. The Grammar Phi parser is running; AI overview wiring still needs a live compatible endpoint.</p>';
+}
+$('#go').onclick=search; $('#q').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
+</script></body></html>
