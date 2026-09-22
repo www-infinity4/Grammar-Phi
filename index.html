@@ -65,7 +65,22 @@ async function search(){
    if(!text)throw new Error('Empty AI response');
    $('#overview').textContent=text;$('#status').innerHTML='';return;
  }catch(e){
-   $('#status').innerHTML='<p class="err">AI overview failed: '+String(e.message||e).replace(/[&<>]/g,'')+'</p>';
+   try{
+     const u=new URL('https://en.wikipedia.org/w/api.php');
+     u.search=new URLSearchParams({action:'query',generator:'search',gsrsearch:q,gsrlimit:'8',prop:'extracts|info',exintro:'1',explaintext:'1',inprop:'url',format:'json',origin:'*'});
+     const j=await fetch(u).then(r=>r.json());
+     const pages=Object.values(j.query?.pages||{}).filter(x=>x.extract);
+     const prose=pages.slice(0,5).map(x=>x.extract).join(' ').replace(/\s+/g,' ').trim();
+     if(prose){
+       const sentences=prose.match(/[^.!?]+[.!?]+/g)||[prose];
+       let out='',seen=new Set();
+       for(const s of sentences){const k=s.toLowerCase().replace(/[^a-z0-9 ]/g,'').slice(0,90);if(k&&!seen.has(k)){seen.add(k);if((out+' '+s).split(/\s+/).length>520)break;out+=' '+s.trim()}}
+       $('#overview').textContent=out.trim();
+       $('#status').innerHTML='<small>Grammar Phi local synthesis · AI provider quota unavailable</small>';
+       return;
+     }
+   }catch(_){}
+   $('#status').innerHTML='<p class="err">Grammar Phi could not retrieve enough source material for this search.</p>';
  }
 }
 $('#go').onclick=search; $('#q').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
