@@ -41,7 +41,7 @@ small{color:#766c7d}.err{color:#a21d27}
 </main>
 <script>
 const $=s=>document.querySelector(s);
-const STOP=new Set("is was are were be been being the a an of and in by with to for from on at as or but if than then that this these those it its he she they them his her their who which when where how".split(" "));
+const STOP=new Set("is was are were be been being the a an of and in by with to for from on at as or but if than then that this these those it its he she they them his her their who what which when where why how".split(" "));
 function classify(query){
  const words=(query.match(/[A-Za-z0-9'.-]+/g)||[]);
  return words.map((w,i)=>{
