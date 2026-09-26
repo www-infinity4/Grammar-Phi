@@ -93,9 +93,16 @@ async function search(){
      const sentences=[]; for(const r of ranked){for(const s of (r.body.match(/[^.!?]+[.!?]+/g)||[r.body])){const low=s.toLowerCase();const hits=required.filter(w=>low.includes(w)).length;if(!hits)continue;sentences.push({text:s.trim(),hits,all:required.length>1&&hits===required.length,score:(hits*100)+(r.coverage*50)+r.score})}}
      sentences.sort((a,b)=>(Number(b.all)-Number(a.all))||(b.hits-a.hits)||(b.score-a.score));
      let out='',seen=new Set(); for(const item of sentences){const k=item.text.toLowerCase().replace(/[^a-z0-9 ]/g,'').slice(0,120);if(!k||seen.has(k))continue;seen.add(k);if((out+' '+item.text).trim().split(/\\s+/).length>520)break;out+=' '+item.text;if(out.trim().split(/\\s+/).length>470)break}
-     const opening=sentences.slice(0,3).some(x=>x.all);
+     const exact=sentences.filter(x=>x.all);
+     const opening=exact.length>0;
      const coverage=required.every(w=>out.toLowerCase().includes(w));
-     if(out.trim()&&coverage&&opening){ $('#overview').textContent=out.trim(); $('#status').innerHTML='<small>Query-centered local synthesis · AI provider unavailable</small>'; if(typeof loadMedia==='function')loadMedia(q); return; }
+     if(out.trim()&&coverage&&opening){
+       const lead=exact[0].text;
+       const leadKey=lead.toLowerCase().replace(/[^a-z0-9 ]/g,'').slice(0,120);
+       const rest=out.trim().split(/(?<=[.!?])\s+/).filter(s=>s.toLowerCase().replace(/[^a-z0-9 ]/g,'').slice(0,120)!==leadKey);
+       $('#overview').textContent=[lead,...rest].join(' ').trim();
+       $('#status').innerHTML='<small>Query-centered local synthesis · AI provider unavailable</small>'; if(typeof loadMedia==='function')loadMedia(q); return;
+     }
    }catch(_){}
    $('#status').innerHTML='<p class="err">Not enough weighted evidence matched every important search concept.</p>';
  }
